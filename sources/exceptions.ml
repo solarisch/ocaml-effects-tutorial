@@ -1,8 +1,16 @@
-let raise (e : exn) : 'a = failwith "not implemented"
-(* Todo *)
+open Effect
+open Effect.Deep
 
-let try_with (f : unit -> 'a) (h : exn -> 'a) : 'a = failwith "not implemented"
-(* Todo *)
+type _ Effect.t += Invalid_argument : exn -> _ Effect.t 
+
+let raise (e : exn) : 'a = perform (Invalid_argument e)
+
+let try_with (f : unit -> 'a) (h : exn -> 'a) : 'a = 
+  try_with f () {effc = (fun (type c) (eff: c Effect.t) ->
+    match eff with 
+    | Invalid_argument e -> Some (fun _ -> h e)
+    | _ -> None
+  )} 
 
 exception Invalid_argument
 
@@ -18,7 +26,7 @@ let _ =
     Printf.printf "%f\n%!" r;
     let r = sqrt (-1.0) in
     Printf.printf "%f\n" r)
-  (fun Invalid_argument -> Printf.printf "Invalid_argument to sqrt\n")
+  (fun _ -> Printf.printf "Invalid_argument to sqrt\n")
 
 (* Prints:
    6.513064

@@ -52,7 +52,19 @@ type 'a tree =
 | Leaf of 'a
 | Node of 'a tree * 'a tree
 
-let same_fringe t1 t2 = failwith "not implemented"
+let rec iter f = function
+| Leaf v -> f v 
+| Node (l, r) -> iter f l; iter f r
+
+let same_fringe t1 t2 = 
+  let gen_tree = generate iter in 
+  let rec same t1 t2 =
+    match t1 (), t2 () with
+    | (Some v1, Some v2) when v1 = v2 -> same t1 t2
+    | (None, None) -> true
+    | _ -> false
+  in 
+  same (gen_tree t1) (gen_tree t2)
 
 let t1 = Node (Leaf 1, Node (Leaf 2, Leaf 3))
 let t2 = Node (Node (Leaf 1, Leaf 2), Leaf 3)

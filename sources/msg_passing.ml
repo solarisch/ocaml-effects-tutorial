@@ -20,7 +20,7 @@ let step f v () =
         | _ -> None
     )}
 
-(* Run both of the computations concurrenty *)
+(* Run both of the computations concurrently *)
 let rec run_both a b =
   match a (), b () with
   | Done, Done -> ()

@@ -44,12 +44,20 @@ module Scheduler : Scheduler = struct
     let rec fork : 'a. 'a promise -> (unit -> 'a) -> unit =
       fun pr main ->
         match_with main ()
-        { retc = (fun v -> failwith "Value case not implemented");
+        { retc = (fun v -> 
+              match !pr with 
+              | Done _ -> ()
+              | Waiting l ->
+                  pr := Done v;
+                  List.iter (fun k -> enqueue (fun () -> continue k v)) l;
+                  dequeue ());
           exnc = raise;
           effc = (fun (type b) (eff: b Effect.t) ->
               match eff with
               | Async f -> (Some (fun (k: (b,_) continuation) -> 
-                      failwith "Async not implemented"
+                      let p = ref (Waiting []) in 
+                      enqueue (fun () -> fork p f);
+                      continue k p
               ))
               | Yield -> (Some (fun k ->
                       enqueue (continue k);
@@ -58,7 +66,9 @@ module Scheduler : Scheduler = struct
               | Await p -> (Some (fun (k: (b,_) continuation) ->
                 begin match !p with
                 | Done v -> continue k v
-                | Waiting l -> failwith "Await.Waiting not implemented"
+                | Waiting l -> 
+                    p := Waiting (k :: l);
+                    dequeue ()
                 end
               ))
               | _ -> None
